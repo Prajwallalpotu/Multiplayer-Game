@@ -1,0 +1,11 @@
+node_modules/
+dist/
+data/
+.env
+test-results/
+playwright-report/
+.DS_Store
+
+node_modules.icloud/
+
+/node_modules
