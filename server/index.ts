@@ -240,6 +240,8 @@ export function createGameServer(
         store.save(r);
         broadcast(r);
         ack({ ok: true });
+        if (a.type === "endSession" || a.type === "leaveSession") for (const client of io.sockets.sockets.values())
+          if (client.data.code === r.code && (a.type === "endSession" || client.data.player === p.id)) client.emit("team:home");
       } catch (e) {
         store.save(r);
         broadcast(r);

@@ -51,6 +51,20 @@ For a purely local trusted-LAN setup, use a locally trusted certificate with a D
 - Finale: travel to each station for your assigned specialties and choose its configuration. Switch roles to operate another station; latches hold without a countdown.
 - Keyboard alternative: WASD/arrows move; E inspects; Q uses the role instrument; J opens the journal; M opens the map. Mouse and accessible DOM controls are also available.
 
+## Hands-on puzzles and saved exits
+
+An optional shared trail adds three physical puzzles alongside the main deductions:
+
+- **Municipal archive → The scrambled picture:** rotate four illustrated tiles to restore the image and reveal a hidden cupboard combination.
+- **St. Agnes clinic → The locked cupboard:** set four brass number wheels and open the latch to recover a winding key.
+- **Clock tower → Inez’s music box:** insert the shared key and rotate nine air channels into one continuous route. The repaired box reveals a wooden sunrise and plays an original melody.
+
+Use **Team inventory** to see the trail, recovered items and next destination. Puzzle rotations, unlocked containers and rewards are authoritative, shared and saved with the room. Existing cases pick up the new objects automatically; these extras do not gate or skip story deductions.
+
+**Save & exit** returns you home with progress intact. The room creator can **Save & exit for everyone** to pause the case and return all connected teammates to their home screen. Clicking the logo also returns you home. Use **Resume saved investigation** in the same browser to reconnect; a team-wide saved exit needs an explicit Resume after everyone reconnects. Keep browser storage to retain your seat.
+
+Spoken guidance waits for a stable objective and queues only the latest update behind the current reading. Manual readings take priority. **Stop reading** silences the current narration; uncheck **Spoken guidance** to disable later automatic updates. All spoken text stays readable on screen. Browser/device voice quality varies.
+
 ## Voice and TURN
 
 **Voice input and playback use the selected controller: laptop or phone.** Use headphones. The laptop plays procedural atmosphere and effects. No conversations are recorded. Evidence has transcripts; optional synthesized readings are accessibility aids, not acted recordings.

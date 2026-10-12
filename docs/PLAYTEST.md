@@ -42,3 +42,11 @@ For the updated Casual lobby, invite 1–6 people, claim multiple roles or use *
 During play, check that **Your next step** makes it clear where to investigate and which tool to use. Try **Read aloud** and **Spoken guidance** on your actual browsers. Switch specialties inside observations or via the toolbar. Walk toward a labeled doorway and use **Enter** rather than relying only on the map. Each finale latch remains set while you change specialties and travel to another station.
 
 Also test a mixed laptop/phone voice group on different networks, a selected phone disconnect followed by switching to laptop in Settings, joystick drag/release and app backgrounding, and an open public directory while a host disconnects or starts the case. Existing saved cases keep their original controller preference.
+
+## Interactive trail and narration regression
+
+- In the archive, approach **The scrambled picture**. Restore its four tiles, then check that the combination appears in every player's **Team inventory**.
+- In the clinic, approach **The locked cupboard**. Try a wrong combination, then use the recovered one; look for the brass winding key reward.
+- In the clock tower, approach **Inez’s music box**. Insert the key and connect all nine air channels, from the upper-left inlet to the lower-right outlet. Check the visual reward and **Play Inez’s morning melody**. Complete this trail before or after the main case; it is optional.
+- Click the logo to return home, then resume from the same browser. Inventory and puzzle progress should remain. The paired phone should also return home and stop its microphone. Test **Save & exit for everyone** from the host; all teammates return home and the case remains paused for a later session.
+- Enable spoken guidance after the initial objective is already on screen. While it reads, have a teammate share evidence. The original reading should finish, followed by the latest objective; it should not restart every sentence. Try a manual transcript, **Stop reading**, and toggling guidance off. Real browser voices, especially Safari/iOS, still need listening checks.

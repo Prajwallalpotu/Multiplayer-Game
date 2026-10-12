@@ -178,3 +178,26 @@ test("public directory hides disconnected hosts and started rooms; laptop voice 
     assert.equal((await list()).length,0);
   } finally { sockets.forEach(s=>s.close());await wait(30);await server.close(); }
 });
+
+test("save-and-exit sends every teammate home without affecting other rooms", async () => {
+  const {newRoom,addPlayer,pair}=await import("../server/game.ts");
+  const server=createGameServer(":memory:");
+  await new Promise<void>(resolve=>server.http.listen(0,"127.0.0.1",resolve));
+  const url="http://127.0.0.1:"+(server.http.address() as any).port;
+  const r=newRoom("Exit team","Host"), guest=addPlayer(r,"Guest"),other=newRoom("Other case","Other");
+  server.rooms.set(r.code,r);server.rooms.set(other.code,other);
+  const sockets:Socket[]=[];
+  try {
+    for(const [room,p] of [[r,r.players[0]],[r,guest],[other,other.players[0]]] as const)
+      sockets.push(await connect(url,{code:room.code,player:p.id,token:p.token,device:"laptop"}));
+    const phone=pair(r,r.players[0].pair.code);
+    sockets.push(await connect(url,{code:r.code,player:phone.id,token:phone.phoneToken,device:"phone"}));
+    r.status="playing";r.shared=["perimeter"];
+    const received=[false,false,false,false];sockets.forEach((s,i)=>s.on("team:home",()=>received[i]=true));
+    const denied=await sockets[1].timeout(3000).emitWithAck("action",{type:"endSession",id:"guest-exit"});assert.equal(denied.ok,false);
+    const leave=await sockets[0].timeout(3000).emitWithAck("action",{type:"leaveSession",id:"host-own-exit"});assert.equal(leave.ok,true);
+    await wait(50);assert.deepEqual(received,[true,false,false,true],"Own exit also closes the paired controller");received.fill(false);
+    const result=await sockets[0].timeout(3000).emitWithAck("action",{type:"endSession",id:"host-exit"});assert.equal(result.ok,true);
+    await wait(50);assert.deepEqual(received,[true,true,false,true]);assert.equal(r.manualPause,true);assert.deepEqual(r.shared,["perimeter"]);
+  }finally{sockets.forEach(s=>s.close());await wait(20);await server.close();}
+});

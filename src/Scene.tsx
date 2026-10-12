@@ -1268,17 +1268,11 @@ export default function Scene({
         for (const door of entrances(loc)) {
           const open = LOCATIONS.find(l => l.id === door.id)!.requires.every(id => g.solved.includes(id));
           const x = door.x * 12, y = door.y * 8;
-          ctx.fillStyle = "#102b2ae8";
-          ctx.fillRect(x - 58, y - 44, 116, 39);
-          ctx.strokeStyle = open ? "#99cbb6" : "#849084";
-          ctx.lineWidth = 2;
-          ctx.strokeRect(x - 8, y - 38, 16, 18);
           ctx.fillStyle = open ? "#c5ead4" : "#b2baa9";
           ctx.textAlign = "center";
           ctx.font = "10px sans-serif";
           ctx.fillText(door.name, x, y + 8);
-          ctx.font = "8px monospace";
-          ctx.fillText(open ? "ENTRANCE · APPROACH" : "CLOSED", x, y + 21);
+
         }
         for (const h of HOTSPOTS.filter((h) => h.location === loc)) {
           const x = h.x * 12,

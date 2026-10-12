@@ -12,11 +12,14 @@ import {
   type PuzzleView,
 } from "../shared/world";
 import Scene from "./Scene";
+import HandsOn, { TeamInventory } from "./HandsOn";
+import { narrate, stopNarration } from "./narration";
 import { Guidance, Joystick, nextStep } from "./Guidance";
 import {
   activateAudio,
   chime,
   playTranscript,
+  playMorningMelody,
   setAudio,
   setLocationAudio,
 } from "./audio";
@@ -131,9 +134,9 @@ function Icon({ name, size = 20 }: { name: string; size?: number }) {
     </svg>
   );
 }
-function Brand({ small = false }: { small?: boolean }) {
+function Brand({ small = false, onHome }: { small?: boolean; onHome?: () => void }) {
   return (
-    <div className={"brand " + (small ? "small" : "")}>
+    <button type="button" aria-label="The Last Ten Minutes — home" onClick={onHome} className={"brand " + (small ? "small" : "")}>
       <span className="brand-symbol">
         <Icon name="compass" size={small ? 25 : 31} />
       </span>
@@ -142,7 +145,7 @@ function Brand({ small = false }: { small?: boolean }) {
         <br />
         <b>TEN MINUTES</b>
       </span>
-    </div>
+    </button>
   );
 }
 function Button({
@@ -301,6 +304,16 @@ export default function App() {
     voice = useRef<Voice | null>(null),
     movement = useRef({ x: 0, y: 0 }),
     gameRef = useRef(game);
+  const soundProgress = useRef<{code:string;solved:number;rewards:number;complete:boolean} | undefined>(undefined);
+  useEffect(() => {
+    if (!game) { soundProgress.current = undefined; return; }
+    const next = {code:game.code,solved:game.solved.length,rewards:game.handsOn?.opened.filter(x=>x!=="key").length || 0,complete:game.status==="complete"};
+    const old = soundProgress.current; soundProgress.current = next;
+    if (!isPhone && old?.code === next.code) {
+      if (!old.complete && next.complete) playMorningMelody();
+      else if (next.solved > old.solved || next.rewards > old.rewards) chime();
+    }
+  }, [game?.code, game?.status, game?.solved.length, game?.handsOn?.opened.length]);
   gameRef.current = game;
   const me = game?.players.find((p) => p.id === game.you),
     role = getRole(me?.role),
@@ -313,6 +326,21 @@ export default function App() {
   const ownsVoice = selectedDevice === (isPhone ? "phone" : "laptop");
   const doors = me ? entrances(me.location).filter(d => Math.hypot(d.x-me.x, d.y-me.y) < 12) : [];
   const coverage = game ? new Set(game.players.flatMap(ownedRoles)).size : 0;
+  const startBlockers = game ? [
+    ...(!connected ? ["Connection lost — reconnect to the server before entering."] : []),
+    ...(coverage < 6 ? [`Assign the missing specialties: ${ROLES.filter(r => !game.players.some(p => ownedRoles(p).includes(r.id))).map(r => r.name).join(", ")}. In Casual, one player can take several roles.`] : []),
+    ...(game.mode === "ranked" && (game.players.length !== 6 || game.players.some(p => ownedRoles(p).length !== 1)) ? ["Ranked needs six investigators with one specialty each. Use Casual for a smaller team."] : []),
+    ...game.players.flatMap(p => {
+      const missing = [
+        ...(!p.laptop ? ["reconnect the game screen"] : []),
+        ...(!p.role ? ["choose a specialty"] : []),
+        ...(p.controller === "phone" && !p.phone ? ["pair your phone or choose laptop controls"] : []),
+        ...(!p.checked ? [p.voice === "unchecked" ? "choose an audio option (voice or text), then confirm the equipment check" : "confirm the equipment check"] : []),
+        ...(!p.ready ? ["select I’m ready"] : []),
+      ];
+      return missing.length ? [`${p.name}: ${missing.join("; ")}.`] : [];
+    }),
+  ] : [];
   useEffect(() => {
     if (screen !== "rooms" || credential) return;
     let disposed = false;
@@ -326,6 +354,14 @@ export default function App() {
     movement.current = {x:0,y:0};
     if (!ownsVoice) { voice.current?.stop(); voice.current = null; }
   }, [selectedDevice, ownsVoice, game?.panel]);
+  useEffect(() => {
+    const toolbar = document.querySelector<HTMLElement>(".game-toolbar");
+    const scene = toolbar?.closest<HTMLElement>(".investigation");
+    if (!toolbar || !scene) return;
+    const update = () => scene.style.setProperty("--toolbar-height", `${toolbar.getBoundingClientRect().height}px`);
+    const observer = new ResizeObserver(update); observer.observe(toolbar); update();
+    return () => observer.disconnect();
+  }, [game?.status]);
   useEffect(() => {
     document.querySelectorAll("main").forEach((m) => {
       m.inert = !!(screen || game?.panel);
@@ -384,12 +420,8 @@ export default function App() {
       setVoiceStatus("Disconnected. Reconnect, then retry voice.");
     });
     s.on("connect_error", (e) => setError(e.message));
-    s.on("state", (v: GameView) =>
-      setGame((old) => {
-        if (old && v.solved.length > old.solved.length && !isPhone) chime();
-        return v;
-      }),
-    );
+    s.on("team:home", returnHome);
+    s.on("state", (v: GameView) => setGame(v));
     return () => {
       voice.current?.stop();
       s.disconnect();
@@ -576,12 +608,21 @@ export default function App() {
       /* Permission guidance is shown by Voice. */
     }
   }
-  function logout() {
+  async function logout() {
+    if (socket.current?.connected) {
+      if (!(await actOn("leaveSession"))) return;
+    }
+    returnHome();
+  }
+  function returnHome() {
+    stopNarration();
+    movement.current = {x:0,y:0};
     voice.current?.stop();
     socket.current?.disconnect();
     setCredential(null);
     setGame(undefined);
     setScreen("");
+    if (isPhone) location.assign("/");
   }
   const roleSwitcher = me && ownedRoles(me).length > 1 ? <label className="role-switch">Active specialty
     <select aria-label="Active specialty" value={me.role} onChange={e => void actOn("role", {role:e.target.value})}>
@@ -717,6 +758,11 @@ export default function App() {
     const close = () => panel("");
     const h = HOTSPOTS.find((h) => "inspect:" + h.id === game.panel),
       q = game.puzzles.find((q) => "puzzle:" + q.id === game.panel);
+    if (game.panel === "inventory") return <Modal title="Things worth bringing back" eyebrow="TEAM INVENTORY / SMALL WONDERS" onClose={close}><TeamInventory game={game}/></Modal>;
+    if (h?.id.startsWith("play-")) return <Modal wide title={h.name} eyebrow={place(h.location) + " / HANDS-ON PUZZLE"} onClose={close}>
+      <HandsOn key={h.id} game={game} puzzle={h.id.slice(5)} act={actOn}/>
+      <Button onClick={() => panel("inventory")}>Open Team inventory</Button>
+    </Modal>;
     if (h)
       return (
         <Modal
@@ -866,9 +912,7 @@ export default function App() {
             windows are warm. Find out who is still here.
           </p>
           <Button onClick={() => {
-            if (!("speechSynthesis" in window)) { setError("Speech is unavailable in this browser. Read the instructions below."); return; }
-            speechSynthesis.cancel();
-            speechSynthesis.speak(new SpeechSynthesisUtterance("Move with W A S D or arrow keys, or your phone joystick. Inspect a gold marker. Use the matching specialist tool, then share your evidence. Open the case journal to compare the clues and solve the deduction. " + nextStep(game)));
+            narrate("Move with W A S D or arrow keys, or your phone joystick. Inspect a gold marker. Use the matching specialist tool, then share your evidence. Open the case journal to compare the clues and solve the deduction. " + nextStep(game), false, setError);
           }}>Read instructions aloud</Button>
           <ol className="steps">
             <li>
@@ -1221,6 +1265,9 @@ export default function App() {
               <span>hints requested</span>
             </div>
           </div>
+          <div className="victory-memento"><span aria-hidden="true">☀</span><h3>You gave Bellwether its morning.</h3><p>187 people. One shared case. Every discovery mattered.</p>
+            {game.handsOn?.opened.includes("music") && <p>♫ Inez’s morning melody recovered — hear it in Team inventory.</p>}
+          </div>
           <div className="report-columns">
             <div>
               <h3>The person responsible</h3>
@@ -1250,6 +1297,7 @@ export default function App() {
               <Icon name="arrow" />
             </Button>
             <Button onClick={() => void leaderboard()}>Team records</Button>
+            <Button onClick={logout}>Save & return home</Button>
           </div>
         </Modal>
       );
@@ -1257,6 +1305,13 @@ export default function App() {
     return null;
   }
   const globalModal =
+    screen === "leave" && game ? <Modal title="Call it a night?" eyebrow="YOUR CASE IS SAVED" onClose={() => setScreen("")}>
+      <p className="narrative">Your clues, puzzles and roles stay saved. Return using “Resume saved investigation” on this browser. Leaving pauses the case while the team waits for you.</p>
+      <div className="button-row"><Button primary onClick={logout}>Save & return home</Button>
+        {game.host === game.you && <Button onClick={() => void actOn("endSession")}>Save & exit for everyone</Button>}
+        <Button onClick={() => setScreen("")}>Keep investigating</Button>
+      </div>
+    </Modal> :
     screen === "settings" ? (
       <Modal
         eyebrow="MAKE YOURSELF COMFORTABLE"
@@ -1392,7 +1447,7 @@ export default function App() {
           </div>
           <div className="hero-shade" />
           <header className="title-nav">
-            <Brand />
+            <Brand onHome={logout} />
             <nav>
               <button onClick={() => setScreen("about")}>
                 The investigation
@@ -1450,6 +1505,7 @@ export default function App() {
                       localStorage.getItem("ltt-session")!,
                     );
                     if (saved.device === "laptop") setCredential(saved);
+                    else if (saved.device === "phone") location.assign("/controller");
                   } catch {
                     setError("Saved session is invalid.");
                   }
@@ -1491,7 +1547,7 @@ export default function App() {
       )}
       {!credential && isPhone && (
         <main className="pair-page">
-          <Brand />
+          <Brand onHome={logout} />
           <span className="eyebrow">YOUR FIELD CONTROLLER</span>
           <h1>
             A line to
@@ -1710,7 +1766,7 @@ export default function App() {
       )}
       {credential && !game && (
         <main className="connecting">
-          <Brand />
+          <Brand onHome={logout} />
           <h2>Finding your signal…</h2>
           <p>Your seat and discovered evidence are saved on the server.</p>
           <Button onClick={logout}>Return to the title</Button>
@@ -1719,7 +1775,7 @@ export default function App() {
       {game && game.status === "lobby" && (
         <main className={"lobby " + (isPhone ? "mobile-lobby" : "")}>
           <header className="game-header">
-            <Brand small />
+            <Brand small onHome={logout} />
             <div className="connection">
               <span className={"status-dot " + (!connected ? "off" : "")} />
               {connected ? "CONNECTED" : "RECONNECTING"}
@@ -1904,6 +1960,11 @@ export default function App() {
                 );
               })}
             </div>
+            <div className="launch-checklist" id="launch-checklist" role="status" aria-live="polite">
+              <strong>{startBlockers.length ? "Before you enter Bellwether" : "Your team is ready to enter Bellwether"}</strong>
+              {startBlockers.length > 0 && <ul>{startBlockers.map(item => <li key={item}>{item}</li>)}</ul>}
+              {game.host !== game.you && <p>When everyone is ready, the room creator selects Enter Bellwether.</p>}
+            </div>
             <div className="start-row">
               <span className="fine">
                 {game.players.filter((p) => p.ready).length} / {game.players.length} ready ·{" "}
@@ -1915,7 +1976,8 @@ export default function App() {
               </span>
               <div className="button-row">
                 <Button
-                  disabled={!me?.role || (me.controller === "phone" && !me.phone) || !me.checked}
+                  aria-describedby="launch-checklist"
+                  disabled={!connected || !me?.laptop || !me?.role || (me.controller === "phone" && !me.phone) || !me.checked}
                   onClick={() => void actOn("ready")}
                 >
                   {me?.ready ? "Not ready" : "I’m ready"}
@@ -1924,11 +1986,8 @@ export default function App() {
                 {game.host === game.you && (
                   <Button
                     primary
-                    disabled={
-                      coverage !== 6 ||
-                      (game.mode === "ranked" && (game.players.length !== 6 || game.players.some(p => ownedRoles(p).length !== 1))) ||
-                      !game.players.every((p) => p.ready && p.laptop && (p.controller !== "phone" || p.phone))
-                    }
+                    aria-describedby="launch-checklist"
+                    disabled={startBlockers.length > 0}
                     onClick={() => {
                       activateAudio();
                       void actOn("start");
@@ -1956,7 +2015,7 @@ export default function App() {
             />
           )}
           <header className="game-header">
-            <Brand small />
+            <Brand small onHome={logout} />
             <div className="chapter">
               <span className="eyebrow">
                 {game.status === "complete"
@@ -2124,6 +2183,8 @@ export default function App() {
               </div>
             </div>
             <nav>
+              <button onClick={() => setScreen("leave")}><Icon name="arrow"/><span>Save & exit</span></button>
+              <button onClick={() => panel("inventory")}><Icon name="book"/><span>Team inventory</span></button>
               {me && ownedRoles(me).length > 1 && <label className="role-switch">Active role
                 <select aria-label="Active role" value={me.role} onChange={e => void actOn("role", {role:e.target.value})}>
                   {ownedRoles(me).map(r => <option key={r} value={r}>{getRole(r)?.name}</option>)}

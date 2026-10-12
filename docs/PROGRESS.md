@@ -31,3 +31,11 @@ See `VERIFICATION.md` for exact automated coverage and its limits. Source, solut
 ## 11 October 2026 — playtest usability improvements
 
 Completed live public-directory refresh and connected-host filtering; Casual 1–6 players with exclusive multi-role ownership and in-game switching; laptop controls and laptop voice with optional phone pairing; analogue joystick; contextual next-step guidance and optional browser narration; labeled nearby entrances with proximity-checked travel. Ranked retains six players / one specialty each. README and playtest instructions updated. Final verification: production build, 13 game/server tests and 7 browser tests passed. Physical-device narration quality, remote voice/TURN and human puzzle-comprehension testing remain field checks.
+
+## 12 October 2026 — interactive puzzles and clearer controls
+
+Added shared picture, combination-cupboard and music-box puzzles with saved inventory, visual rewards and an original melody; simplified entrance labels; added individual and host-wide saved exits, including paired phones, and clickable home branding. Narration now queues automatic objectives, retains utterances, supports Stop reading and preserves transcript volume.
+
+Production build passed, along with 17 game/server/narration tests and the full 9-browser-test suite. After preserving transcript volume, the build, 17 tests and focused browser narration regression passed again. Speech scheduling is checked with synthesis stubs; physical device voice quality still requires listening tests.
+
+The lobby now displays missing specialties and each player’s outstanding controls, connection, audio check and ready steps beside Enter Bellwether. Ranked requirements and host-only launch are explained. Button eligibility includes the same role/equipment checks as the server.

@@ -1,3 +1,4 @@
+import { narrate, stopNarration } from "./narration";
 import { useEffect, useRef, useState } from "react";
 import { HOTSPOTS, LOCATIONS, ROLES, ownedRoles, type GameView } from "../shared/world";
 
@@ -26,29 +27,29 @@ export function Guidance({ game, onJournal }: { game: GameView; onJournal: () =>
   const step = nextStep(game);
   const intro = game.panel === "onboarding" ? "Welcome to Bellwether. Move with W A S D or the arrow keys, or use your phone joystick. Press E to inspect a gold marker. Use your specialist tool, share the evidence, and compare it in the case journal. " : "";
   const text = intro + step;
-  function speak(value: string) {
-    if (!("speechSynthesis" in window)) { setMessage("Speech is unavailable in this browser. Instructions remain on screen."); return; }
-    speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(value);
-    utterance.lang = "en-US";
-    utterance.rate = 0.94;
-    utterance.onerror = () => setMessage("Speech could not play. Read the next step below or press Read aloud to retry.");
-    speechSynthesis.speak(utterance);
-  }
   useEffect(() => {
-    if (enabled && previous.current !== text) speak(text);
-    previous.current = text;
-  }, [text, enabled]);
-  useEffect(() => () => { if ("speechSynthesis" in window) speechSynthesis.cancel(); }, []);
+    if (!enabled || game.panel || game.paused) return;
+    const timer = setTimeout(() => {
+      if (previous.current !== step) {
+        previous.current = step;
+        narrate(step, true, setMessage);
+      }
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [step, enabled, game.panel, game.paused]);
+  useEffect(() => () => stopNarration(true), []);
   return <aside className="next-step" aria-label="Investigation guidance">
     <span className="eyebrow">YOUR NEXT STEP</span>
     <p aria-live="polite">{step}</p>
     <div className="button-row">
       <button className="text-btn" onClick={onJournal}>Open case journal →</button>
-      <button className="text-btn" onClick={() => speak(text)}>Read aloud</button>
+      <button className="text-btn" onClick={() => narrate(text, false, setMessage)}>Read aloud</button>
+      <button className="text-btn" onClick={() => { stopNarration(); }}>Stop reading</button>
       <label><input type="checkbox" checked={enabled} onChange={e => {
         setEnabled(e.target.checked); localStorage.setItem("ltt-narration", String(e.target.checked));
-        if (!e.target.checked && "speechSynthesis" in window) speechSynthesis.cancel();
+        previous.current = "";
+        if (e.target.checked) { previous.current = step; narrate(step, false, setMessage); }
+        else stopNarration();
       }} /> Spoken guidance</label>
     </div>
     {message && <small role="status">{message}</small>}

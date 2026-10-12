@@ -1,3 +1,4 @@
+import { narrate } from "./narration";
 let context: AudioContext | undefined,
   ambient: GainNode | undefined,
   effects = 0.45,
@@ -120,16 +121,22 @@ export function chime(success = true) {
 }
 export function playTranscript(text: string) {
   activateAudio();
-  if ("speechSynthesis" in window) {
-    speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    u.rate = 0.84;
-    u.pitch = 0.8;
-    u.volume = effects;
-    speechSynthesis.speak(u);
-  }
+  narrate(text, false, undefined, effects);
 }
 export function stopAudio() {
   clearInterval(tickTimer);
   void context?.suspend();
+}
+
+export function playMorningMelody() {
+  activateAudio();
+  if (!context) return;
+  [392, 493.88, 587.33, 783.99, 659.25, 587.33, 493.88, 392].forEach((frequency, i) => {
+    const o = context!.createOscillator(), g = context!.createGain();
+    const at = context!.currentTime + i * .24;
+    o.type = "sine"; o.frequency.value = frequency;
+    g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(effects * .2, at + .015);
+    g.gain.exponentialRampToValueAtTime(.001, at + .75);
+    o.connect(g); g.connect(context!.destination); o.start(at); o.stop(at + .8);
+  });
 }

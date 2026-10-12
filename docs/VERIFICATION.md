@@ -76,3 +76,13 @@ Not established: 90-minute duration, six-human fun or emotional payoff, live iOS
 - During checks, iCloud offloaded source files again. Finder Download Now was requested for the project, which already had Keep Downloaded enabled. A temporary validation copy was prepared outside Documents to avoid cloud read stalls.
 
 Final update checks: production build passed in the project and the non-cloud verification copy, with identical generated JavaScript/CSS filenames. All **13 game/server tests** and **7 browser tests** passed in a clean final run against a temporary in-memory server on port 3003. The user's normal server/database were not used for automated playthroughs. Five stalled source/test files were restored from the previously validated checkout plus the exact edits made in this session; their expected byte sizes matched before restoration.
+
+## 12 October 2026 — interactive puzzles and clearer controls
+
+Added shared picture, combination-cupboard and music-box puzzles with saved inventory, visual rewards and an original melody; simplified entrance labels; added individual and host-wide saved exits, including paired phones, and clickable home branding. Narration now queues automatic objectives, retains utterances, supports Stop reading and preserves transcript volume.
+
+Production build passed, along with 17 game/server/narration tests and the full 9-browser-test suite. After preserving transcript volume, the build, 17 tests and focused browser narration regression passed again. Speech scheduling is checked with synthesis stubs; physical device voice quality still requires listening tests.
+
+The lobby now displays missing specialties and each player’s outstanding controls, connection, audio check and ready steps beside Enter Bellwether. Ranked requirements and host-only launch are explained. Button eligibility includes the same role/equipment checks as the server.
+
+Lobby follow-up: production build and focused Chrome browser regression passed. The regression verifies named missing requirements, assignment updates, readiness and the enabled launch button. Default Playwright Chromium was unavailable locally, so the installed Chrome channel was used. Local app health at port 5175 passed.

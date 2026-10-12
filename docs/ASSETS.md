@@ -7,3 +7,7 @@ Georgia/Times New Roman and Arial/Helvetica are browser/system font references; 
 Atmosphere and feedback tones are original Web Audio oscillator compositions. Optional spoken evidence uses the browser’s built-in speech synthesis voice; availability/quality varies by OS. It is explicitly labeled synthesized. Voice conversations are never recorded.
 
 The procedural visual style is the delivered art system, not a hidden downloaded placeholder set. Remaining production limitations: geometric characters, limited facial/body acting, no voiced actor performances, no authored Foley recordings, and no bespoke character portraits. Those additions would require a separate art/audio production pass. There are no temporary assets silently presented as licensed final artwork.
+
+## Hands-on trail
+
+The archive picture is an original inline SVG (kite, river, mountains and sun), split into four rotating views in `src/HandsOn.tsx`. Cupboard wheels, the brass key, music-box channels and sunrise reward use native SVG, CSS and text symbols. `playMorningMelody` in `src/audio.ts` synthesizes an original eight-note phrase with Web Audio; no sampled recording or external image is used. The existing reduced-motion preference disables tile/reward animations.

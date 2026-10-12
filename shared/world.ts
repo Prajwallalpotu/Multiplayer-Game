@@ -1,3 +1,4 @@
+import type { HandsOnState } from "./handsOn";
 export const VERSION = "bellwether-1.0";
 export const ROLES = [
   {
@@ -339,6 +340,7 @@ export type EvidenceView = {
   optional?: boolean;
 };
 export type GameView = {
+  handsOn?: HandsOnState;
   code: string;
   name: string;
   mode: string;
@@ -385,3 +387,9 @@ export function entrances(location: LocationId) {
 export function ownedRoles(p: { role?: Role; roles?: Role[] }): Role[] {
   return p.roles ?? (p.role ? [p.role] : []);
 }
+
+HOTSPOTS.push(
+  {id:"play-frame",location:"archive",name:"The scrambled picture",x:28,y:68,roles:[],description:"Four picture tiles sit crooked in a wooden frame. A tiny cupboard emblem is carved into its edge."},
+  {id:"play-cupboard",location:"clinic",name:"The locked cupboard",x:27,y:70,roles:[],description:"Four brass number wheels guard a small drawer. The label reads: ‘The archive picture remembers the combination.’"},
+  {id:"play-music",location:"clock",name:"Inez’s music box",x:29,y:70,roles:[],description:"A winding socket and nine rotating air channels. A note reads: ‘My spare key is in the clinic cupboard. Let every pipe sing.’"},
+);

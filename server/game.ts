@@ -1,3 +1,4 @@
+import { newHandsOn, pipesSolved, type HandsOnState } from "../shared/handsOn.ts";
 import { randomBytes } from "node:crypto";
 import {
   ACTS,
@@ -40,6 +41,7 @@ export type Player = {
   seen: string[];
 };
 export type Room = {
+  handsOn?: HandsOnState;
   code: string;
   name: string;
   host: string;
@@ -342,6 +344,14 @@ export function action(
     done();
     return;
   }
+  if (type === "leaveSession") { done(); return; }
+  if (type === "endSession") {
+    assert(p.id === r.host, "Only the room creator can save and exit for everyone.");
+    r.manualPause = r.status === "playing";
+    r.public = false;
+    event(r, "The team saved the investigation for another evening.");
+    done(); return;
+  }
   if (type === "pause") {
     assert(r.status === "playing", "No active investigation.");
     r.manualPause = !r.manualPause;
@@ -357,13 +367,39 @@ export function action(
   assert(
     r.status === "playing" ||
       (r.status === "complete" &&
-        ["travel", "inspect", "ability", "share"].includes(type)),
+        ["travel", "inspect", "ability", "share", "handsOn"].includes(type)),
     "Start an investigation first.",
   );
   assert(
     !paused(r),
     "The team is paused. Reconnect missing devices or resume.",
   );
+  if (type === "handsOn") {
+    const objects: Record<string,string> = {frame:"play-frame",cupboard:"play-cupboard",music:"play-music"};
+    assert(objects[a.puzzle] && near(p, objects[a.puzzle]) && unlocked(r,p.location), "Approach the puzzle in its room first.");
+    const state = r.handsOn ??= newHandsOn();
+    if (state.opened.includes(a.puzzle)) { done(); return; }
+    if (a.puzzle === "frame" || a.puzzle === "music") {
+      if (a.puzzle === "music") {
+        assert(state.opened.includes("cupboard"), "Find the winding key in the clinic cupboard first.");
+        if (a.operation === "insertKey") { if (!state.opened.includes("key")) state.opened.push("key"); done(); return; }
+        assert(state.opened.includes("key"), "Insert the winding key first.");
+      }
+      const tiles = a.puzzle === "frame" ? state.frame : state.pipes;
+      assert(Number.isInteger(a.tile) && a.tile >= 0 && a.tile < tiles.length, "Choose a puzzle tile.");
+      tiles[a.tile] = (tiles[a.tile] + 1) % 4;
+      if (a.puzzle === "frame" ? tiles.every(v => v === 0) : pipesSolved(tiles)) {
+        state.opened.push(a.puzzle);
+        event(r, a.puzzle === "frame" ? "The restored picture reveals the clinic cupboard combination: 3142. It is saved in Team inventory." : "Inez’s music box plays again. A small wooden sunrise rises from the lid. The team recovered the morning melody.");
+      }
+    } else {
+      assert(state.opened.includes("frame"), "Restore the archive picture to discover the combination first.");
+      assert(a.code === "3142", "The latch stays shut. Compare the four wheels with the combination in Team inventory.");
+      state.opened.push("cupboard");
+      event(r, "The cupboard clicks open. Inside is a brass winding key for Inez’s music box in the clock tower. Added to Team inventory.");
+    }
+    done(); return;
+  }
   if (type === "travel") {
     const dest = LOCATIONS.find((l) => l.id === a.location),
       from = LOCATIONS.find((l) => l.id === p.location);
@@ -391,7 +427,7 @@ export function action(
     assert(near(p, a.hotspot), "Move closer to the marked object.");
     const h = HOTSPOTS.find((h) => h.id === a.hotspot)!;
     p.panel = "inspect:" + h.id;
-    if (!h.roles.length && !p.observations.includes(h.id))
+    if (!h.roles.length && !h.id.startsWith("play-") && !p.observations.includes(h.id))
       p.observations.push(h.id);
     if (type === "ability") {
       assert(
@@ -582,6 +618,7 @@ export function view(r: Room, p: Player, device: "laptop" | "phone"): GameView {
     };
   });
   return {
+    handsOn: r.handsOn || newHandsOn(),
     code: r.code,
     name: r.name,
     mode: r.mode,
