@@ -331,6 +331,7 @@ export function action(
   if (type === "start") {
     assert(p.id === r.host, "The room creator begins the investigation.");
     assert(r.status === "lobby", "Already started.");
+    assert(r.players.length >= 2, "At least two players are required. Invite a friend before entering Bellwether.");
     assert(r.players.every(p => p.ready && p.role && p.checked && p.laptop && (p.controller !== "phone" || p.phone)),
       "Every investigator must choose a role, check their controls and be ready.");
     assert(new Set(r.players.flatMap(ownedRoles)).size === 6, "All six roles must be assigned. The host can distribute unclaimed roles.");

@@ -39,3 +39,9 @@ Added shared picture, combination-cupboard and music-box puzzles with saved inve
 Production build passed, along with 17 game/server/narration tests and the full 9-browser-test suite. After preserving transcript volume, the build, 17 tests and focused browser narration regression passed again. Speech scheduling is checked with synthesis stubs; physical device voice quality still requires listening tests.
 
 The lobby now displays missing specialties and each player’s outstanding controls, connection, audio check and ready steps beside Enter Bellwether. Ranked requirements and host-only launch are explained. Button eligibility includes the same role/equipment checks as the server.
+
+## 13 October 2026 — two-player minimum
+
+Casual starts now require at least two players in both the lobby checklist and authoritative server; Ranked still requires six. Role switches remain restricted to the specialties assigned to that player, with regression checks that another player’s active role and assignments remain unchanged. Updated the former solo playthrough to distribute clues and finale stations across two players.
+
+Verification: production build and all 18 game/server/narration tests passed. Three affected Chrome browser tests passed: lobby requirements, two-player guided investigation and public directory updates after starting. Browser fixtures were updated to ready both players after distributing roles.

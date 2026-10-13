@@ -92,6 +92,7 @@ test("lobby explains missing requirements and clears them when the team is ready
   const server=createGameServer(":memory:");
   await new Promise<void>(resolve=>server.http.listen(0,"127.0.0.1",resolve));
   const r=newRoom("LOBBY CHECKLIST TEST","Alex"); const p=r.players[0];
+  const teammate=addPlayer(r,"Sam"); teammate.laptop=true; teammate.checked=true; teammate.voice="text"; teammate.role="audio"; teammate.roles=ROLES.slice(1,4).map(r=>r.id); teammate.ready=true;
   p.controller="laptop"; p.checked=true; p.voice="text";
   server.rooms.set(r.code,r);
   const ctx=await browser.newContext();

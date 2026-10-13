@@ -302,7 +302,7 @@ test("six paired sessions: phone-only exploration, role evidence and mirrored de
   }
 });
 
-test("solo laptop: six roles, guided first deduction, speech control and nearby doorway", async ({page}) => {
+test("two laptops: assigned roles, guided first deduction, speech control and nearby doorway", async ({page,request}) => {
   await page.addInitScript(() => {
     (window as any).__spoken = [];
     speechSynthesis.speak = utterance => { (window as any).__spoken.push(utterance.text); };
@@ -315,6 +315,13 @@ test("solo laptop: six roles, guided first deduction, speech control and nearby 
   await page.getByRole("button",{name:"Create investigation",exact:true}).click();
   await page.getByRole("button",{name:"Distribute unclaimed roles"}).click();
   await expect(page.getByText(/6\/6 specialties assigned/)).toBeVisible();
+  await expect(page.getByRole("button",{name:"Enter Bellwether"})).toBeDisabled();
+  await expect(page.locator("#launch-checklist")).toContainText("At least two players");
+  await page.getByRole("button",{name:/02 Audio Specialist/}).click();
+  const credential=await page.evaluate(()=>JSON.parse(localStorage.getItem("ltt-session")!));
+  const teammate=await joinReadyTeammate(request,credential.code);
+  try {
+
   await page.getByRole("button",{name:"Use text communication",exact:true}).click();
   await page.getByRole("button",{name:"Confirm keyboard & audio check"}).click();
   await page.getByRole("button",{name:"I’m ready"}).click();
@@ -350,6 +357,7 @@ test("solo laptop: six roles, guided first deduction, speech control and nearby 
   await page.reload();
   await expect(page.getByRole("heading",{name:"Police station",exact:true})).toBeVisible();
   await expect(page.getByLabel("Active role")).toHaveValue("engineer");
+  } finally { teammate.disconnect(); }
 });
 
 test("public directory refreshes after a host leaves or starts without reloading the page", async ({page, request}) => {
@@ -358,6 +366,7 @@ test("public directory refreshes after a host leaves or starts without reloading
   const response=await request.post("/api/rooms",{data:{name:"LIVE DIRECTORY TEST",playerName:"Directory host",public:true}});
   const credentials=await response.json();
   const host=io(url,{auth:credentials,forceNew:true});
+  const teammate=await joinReadyTeammate(request,credentials.code);
   let seq=0;
   const connected=()=>new Promise<void>((resolve,reject)=>{ if(host.connected) resolve(); else { host.once("connect",resolve);host.once("connect_error",reject); }});
   const action=async(type:string,data:any={})=>{const result=await host.timeout(3000).emitWithAck("action",{id:"directory-ui-"+ ++seq,type,...data});expect(result.ok).toBe(true);};
@@ -370,7 +379,20 @@ test("public directory refreshes after a host leaves or starts without reloading
     await expect(page.getByText("LIVE DIRECTORY TEST")).not.toBeVisible({timeout:6000});
     host.connect(); await connected();
     await expect(page.getByText("LIVE DIRECTORY TEST")).toBeVisible({timeout:6000});
-    await action("assignRoles"); await action("voice",{value:"text"}); await action("checked"); await action("ready"); await action("start");
+    await action("assignRoles"); expect((await teammate.timeout(3000).emitWithAck("action",{id:"partner-ready-after-assignment",type:"ready"})).ok).toBe(true); await action("voice",{value:"text"}); await action("checked"); await action("ready"); await action("start");
     await expect(page.getByText("LIVE DIRECTORY TEST")).not.toBeVisible({timeout:6000});
-  } finally {host.disconnect();}
+  } finally {host.disconnect();teammate.disconnect();}
 });
+
+async function joinReadyTeammate(request: any, code: string) {
+  const {io}=await import("socket.io-client");
+  const response=await request.post("/api/join",{data:{code,playerName:"Partner"}});
+  const credentials=await response.json();
+  const socket=io(process.env.TEST_URL || "http://127.0.0.1:5175",{auth:credentials,forceNew:true});
+  await new Promise<void>((resolve,reject)=>{socket.once("connect",resolve);socket.once("connect_error",reject);});
+  for(const [i,action] of [{type:"claimRole",role:"audio"},{type:"voice",value:"text"},{type:"checked"},{type:"ready"}].entries()) {
+    const result=await socket.timeout(3000).emitWithAck("action",{id:"partner-"+i,...action});
+    expect(result.ok).toBe(true);
+  }
+  return socket;
+}

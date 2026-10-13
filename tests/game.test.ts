@@ -323,11 +323,15 @@ test("restored town remains explorable without changing completion time or score
   );
 });
 
-test("solo keyboard player covers all specialties, shares every clue and completes six latched stations", () => {
-  const r = newRoom("Solo case", "Solo"), p = r.players[0];
+test("two keyboard players cover all specialties, share every clue and complete six latched stations", () => {
+  const r = newRoom("Duo case", "A"), host = r.players[0];
+  const partner = addPlayer(r,"B");
+  let p = host;
   p.laptop = true;
   send(r, p, "assignRoles");
-  assert.equal(p.roles?.length, 6);
+  assert.equal(p.roles?.length, 3);
+  partner.laptop=true;
+  send(r,partner,"voice",{value:"text"}); send(r,partner,"checked"); send(r,partner,"ready");
   send(r, p, "voice", {value:"text"});
   send(r, p, "checked");
   send(r, p, "ready");
@@ -340,6 +344,7 @@ test("solo keyboard player covers all specialties, shares every clue and complet
       const c = clues.find(c => c.id === id)!;
       const h = HOTSPOTS.find(h => h.id === c.hotspot)!;
       assert(unlocked(r, c.location));
+      p = r.players.find(player => player.roles?.includes(c.role))!;
       send(r, p, "role", {role:c.role});
       p.location = c.location; p.x=h.x; p.y=h.y;
       send(r, p, "ability", {hotspot:h.id});
@@ -351,6 +356,7 @@ test("solo keyboard player covers all specialties, shares every clue and complet
     }
   }
   for (const f of finale) {
+    p = r.players.find(player => player.roles?.includes(f.role))!;
     send(r, p, "role", {role:f.role});
     const h = HOTSPOTS.find(h => h.id === f.hotspot)!;
     p.location = f.location; p.x=h.x; p.y=h.y;
@@ -374,7 +380,12 @@ test("shared roles stay exclusive, ranked needs six humans, and keyboard fallbac
   r.mode="ranked";
   assert.throws(() => send(r,a,"start"), /Ranked games require six/);
   r.mode="casual"; send(r,a,"start");
+  const otherRole = b.role, otherRoles = [...b.roles!];
+  send(r,a,"role",{role:a.roles![1]});
+  assert.equal(b.role,otherRole); assert.deepEqual(b.roles,otherRoles);
   assert.throws(() => send(r,a,"role",{role:b.role}), /assigned roles/);
+  assert.throws(() => send(r,a,"claimRole",{role:b.role}), /assigned roles/);
+  assert.equal(b.role,otherRole); assert.deepEqual(b.roles,otherRoles);
   send(r,a,"controller",{value:"phone"}); assert(paused(r));
   send(r,a,"controller",{value:"laptop"}); assert(!paused(r));
   assert.throws(() => send(r,a,"checked",{},"phone"), /selected controller/);
@@ -382,4 +393,11 @@ test("shared roles stay exclusive, ranked needs six humans, and keyboard fallbac
   assert.throws(() => send(r,a,"travel",{location:"police",entrance:true}), /closer to this entrance/);
   a.x=23;a.y=56;send(r,a,"travel",{location:"police",entrance:true});
   assert.equal(a.location,"police");
+});
+
+ test("a fully prepared solo player cannot start", () => {
+  const r=newRoom("Solo rejected","A"), p=r.players[0]; p.laptop=true;
+  send(r,p,"assignRoles"); send(r,p,"voice",{value:"text"}); send(r,p,"checked"); send(r,p,"ready");
+  assert.throws(()=>send(r,p,"start"), /At least two players/);
+  assert.equal(r.status,"lobby");
 });

@@ -327,6 +327,7 @@ export default function App() {
   const doors = me ? entrances(me.location).filter(d => Math.hypot(d.x-me.x, d.y-me.y) < 12) : [];
   const coverage = game ? new Set(game.players.flatMap(ownedRoles)).size : 0;
   const startBlockers = game ? [
+    ...(game.players.length < 2 ? ["At least two players are required. Share the room invitation with a friend to continue."] : []),
     ...(!connected ? ["Connection lost — reconnect to the server before entering."] : []),
     ...(coverage < 6 ? [`Assign the missing specialties: ${ROLES.filter(r => !game.players.some(p => ownedRoles(p).includes(r.id))).map(r => r.name).join(", ")}. In Casual, one player can take several roles.`] : []),
     ...(game.mode === "ranked" && (game.players.length !== 6 || game.players.some(p => ownedRoles(p).length !== 1)) ? ["Ranked needs six investigators with one specialty each. Use Casual for a smaller team."] : []),
@@ -1613,7 +1614,7 @@ export default function App() {
                   <b>01</b>
                   <h3>Bring your investigators</h3>
                   <p>
-                    Play with 1–6 investigators on laptops. Phones are optional. Share all six investigative roles between your group.
+                    Play with 2–6 investigators on laptops. Phones are optional. Share all six investigative roles between your group.
                   </p>
                 </div>
                 <div>
@@ -1940,10 +1941,10 @@ export default function App() {
                         ? getRole(p.role)?.mark
                         : String(i + 1).padStart(2, "0")}
                     </span>
-                    <strong>{p?.name || "Optional investigator"}</strong>
+                    <strong>{p?.name || "Open investigator seat"}</strong>
                     <small>
                       {!p
-                        ? "OPEN · OPTIONAL IN CASUAL"
+                        ? "OPEN · 2 PLAYERS MINIMUM"
                         : p.simulated
                           ? "SIMULATED"
                           : p.ready

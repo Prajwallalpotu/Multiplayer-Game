@@ -1,6 +1,6 @@
 # THE LAST TEN MINUTES
 
-A cooperative detective game for 1–6 players set in Bellwether, a town caught inside the last ten minutes of an experiment. Each investigator can play on a laptop with keyboard and mouse, or optionally pair a phone joystick. All six specialties stay in the story; smaller casual groups can assign multiple specialties to each person. The authored episode contains eight connected locations, fourteen deductions across five acts, twenty-five specialist observations, three resident keepsakes, and six distributed finale configurations.
+A cooperative detective game for 2–6 players set in Bellwether, a town caught inside the last ten minutes of an experiment. Each investigator can play on a laptop with keyboard and mouse, or optionally pair a phone joystick. All six specialties stay in the story; smaller casual groups can assign multiple specialties to each person. The authored episode contains eight connected locations, fourteen deductions across five acts, twenty-five specialist observations, three resident keepsakes, and six distributed finale configurations.
 
 This repository contains the actual game, authoritative Node server, deterministic content package, procedural canvas art and audio, WebRTC voice on the selected controller, SQLite persistence, tests and facilitator documentation. Six-human enjoyment, duration and actual mobile/network reliability still require field testing; see [verification](docs/VERIFICATION.md) and [playtest guide](docs/PLAYTEST.md).
 
@@ -14,7 +14,7 @@ cp .env.example .env
 npm run dev
 ```
 
-Open **http://localhost:5175** on the first laptop. Create a casual room and share its **six-character room invitation** with your group. Casual supports 1–6 players; Ranked requires six players with one specialty each.
+Open **http://localhost:5175** on the first laptop. Create a casual room and share its **six-character room invitation** with your group. Casual supports 2–6 players; Ranked requires six players with one specialty each.
 
 1. Choose your roles: click one or more unclaimed specialty cards. Click again to release a role. The creator can **Distribute unclaimed roles** evenly among current players. All six specialties must be assigned before starting.
 2. Choose **Laptop keyboard & mouse** (default), enable the microphone or select **Use text communication**, then **Confirm keyboard & audio check**.
